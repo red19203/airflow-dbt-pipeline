@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: stg_weather_daily
+    columns:
+      - name: city
+        data_tests:
+          - not_null
+      - name: date
+        data_tests:
+          - not_null
+      - name: temperature_max
+        data_tests:
+          - not_null
+    data_tests:
+      - unique:
+          column_name: "(city || '-' || date::text)"
+
+  - name: mart_city_weather_summary
+    columns:
+      - name: city
+        data_tests:
+          - unique
+          - not_null
+      - name: nb_days
+        data_tests:
+          - not_null

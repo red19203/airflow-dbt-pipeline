@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  dbt:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: airflow
+          POSTGRES_PASSWORD: airflow
+          POSTGRES_DB: warehouse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U airflow"
+          --health-interval 5s
+          --health-retries 10
+    env:
+      WAREHOUSE_HOST: localhost
+      WAREHOUSE_USER: airflow
+      WAREHOUSE_PASSWORD: airflow
+      WAREHOUSE_DB: warehouse
+      PGPASSWORD: airflow
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install dbt-core==1.8.2 dbt-postgres==1.8.2
+      - name: Seed raw table
+        run: |
+          psql -h localhost -U airflow -d warehouse -c "CREATE SCHEMA raw;"
+          psql -h localhost -U airflow -d warehouse -c "CREATE TABLE raw.weather_daily (city TEXT NOT NULL, date DATE NOT NULL, temperature_max DOUBLE PRECISION, temperature_min DOUBLE PRECISION, precipitation_sum DOUBLE PRECISION, loaded_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (city, date));"
+          psql -h localhost -U airflow -d warehouse -c "INSERT INTO raw.weather_daily (city, date, temperature_max, temperature_min, precipitation_sum) VALUES ('Paris', '2026-11-04', 9.9, 6.5, 0), ('Paris', '2026-11-05', 11.7, 5.2, 0), ('Lyon', '2026-11-05', 10.4, 5.9, 14);"
+      - name: dbt run
+        working-directory: dbt
+        run: dbt run --profiles-dir .
+      - name: dbt test
+        working-directory: dbt
+        run: dbt test --profiles-dir .
+
+  dags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m py_compile dags/weather_ingest.py
