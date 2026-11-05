@@ -5,7 +5,7 @@
 **Project Title:** Weather Data Pipeline - Automated ELT with Airflow, dbt and PostgreSQL
 
 **Author:**
-* [Reda TAHIRI] - [reda.tahiri@epita.fr]
+* [Reda TAHIRI]
 
 **GitHub Repository:** https://github.com/red19203/airflow-dbt-pipeline
 
